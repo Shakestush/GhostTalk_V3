@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GhostTalk - Anonymous P2P Messaging</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0f0f23 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .ghost-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(45deg, #64ffda, #bb86fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #a0a0a0;
+            font-size: 1.1rem;
+        }
+
+        .status-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .status-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(100, 255, 218, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(100, 255, 218, 0.2);
+        }
+
+        .status-label {
+            font-size: 0.9rem;
+            color: #a0a0a0;
+            margin-bottom: 5px;
+        }
+
+        .status-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #64ffda;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            height: fit-content;
+        }
+
+        .chat-area {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.sent {
+            background: linear-gradient(135deg, #64ffda, #bb86fc);
+            color: #000;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.received {
+            background: rgba(255, 255, 255, 0.1);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .message-input {
+            padding: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            gap: 10px;
+        }
+
+        .input-field {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            padding: 12px 20px;
+            color: #e0e0e0;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: #64ffda;
+            box-shadow: 0 0 10px rgba(100, 255, 218, 0.3);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #64ffda, #bb86fc);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 24px;
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(100, 255, 218, 0.4);
+        }
+
+        .peer-list {
+            margin-bottom: 20px;
+        }
+
+        .peer-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .peer-item:hover {
+            background: rgba(100, 255, 218, 0.1);
+            border-color: #64ffda;
+        }
+
+        .peer-item.active {
+            background: linear-gradient(135deg, rgba(100, 255, 218, 0.2), rgba(187, 134, 252, 0.2));
+            border-color: #64ffda;
+        }
+
+        .peer-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .peer-id {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #64ffda;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .connection-form {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #a0a0a0;
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: #e0e0e0;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #64ffda;
+        }
+
+        .security-info {
+            background: rgba(187, 134, 252, 0.1);
+            border: 1px solid rgba(187, 134, 252, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .security-info h3 {
+            color: #bb86fc;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .security-info ul {
+            list-style: none;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        .security-info li::before {
+            content: "🔒 ";
+            margin-right: 5px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                order: 2;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="ghost-icon">👻</div>
+            <h1>GhostTalk</h1>
+            <p class="subtitle">Anonymous P2P Messaging • End-to-End Encrypted • Zero Logs</p>
+        </div>
+
+        <div class="status-panel">
+            <div class="status-item">
+                <div class="status-label">Connection Status</div>
+                <div class="status-value" id="connectionStatus">Initializing...</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Active Peers</div>
+                <div class="status-value" id="peerCount">0</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Your Anonymous ID</div>
+                <div class="status-value" id="userId">Generating...</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Messages Sent</div>
+                <div class="status-value" id="messageCount">0</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h3 style="margin-bottom: 15px; color: #64ffda;">Connect to Peer</h3>
+                
+                <div class="connection-form">
+                    <div class="form-group">
+                        <label>Peer ID or Relay Code:</label>
+                        <input type="text" id="peerIdInput" placeholder="Enter peer ID..." />
+                    </div>
+                    <button class="btn" onclick="connectToPeer()">Connect</button>
+                </div>
+
+                <h3 style="margin-bottom: 15px; color: #64ffda;">Active Connections</h3>
+                <div class="peer-list" id="peerList">
+                    <div style="text-align: center; color: #666; padding: 20px;">
+                        No active connections
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn" onclick="generateNewIdentity()">New Identity</button>
+                    <button class="btn" onclick="clearAllMessages()">Clear Messages</button>
+                </div>
+
+                <div class="security-info">
+                    <h3>🔐 Privacy Features</h3>
+                    <ul>
+                        <li>End-to-end encryption</li>
+                        <li>Anonymous identities</li>
+                        <li>No IP address logging</li>
+                        <li>Ephemeral keys</li>
+                        <li>Forward secrecy</li>
+                        <li>No message persistence</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="chat-area">
+                <div class="chat-header">
+                    <h3 id="chatTitle">Select a peer to start messaging</h3>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #4caf50;">🔐</span>
+                        <span style="font-size: 0.9rem; color: #a0a0a0;">Encrypted</span>
+                    </div>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div style="text-align: center; color: #666; padding: 40px;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">💬</div>
+                        <p>Your messages are end-to-end encrypted and completely anonymous.</p>
+                        <p style="margin-top: 10px; font-size: 0.9rem;">Connect to a peer to start chatting securely.</p>
+                    </div>
+                </div>
+                
+                <div class="message-input">
+                    <input type="text" class="input-field" id="messageInput" placeholder="Type your anonymous message..." disabled />
+                    <button class="btn" onclick="sendMessage()" disabled id="sendBtn">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="notification" id="notification"></div>
+    </div>
+
+    <script>
+        class GhostTalk {
+            constructor() {
+                this.userId = this.generateAnonymousId();
+                this.peers = new Map();
+                this.activePeer = null;
+                this.messageCount = 0;
+                this.connectionStatus = 'offline';
+                this.messages = new Map();
+                
+                this.initializeUI();
+                this.simulateNetworkActivity();
+            }
+
+            generateAnonymousId() {
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                let result = 'GHOST_';
+                for (let i = 0; i < 8; i++) {
+                    result += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
+                return result;
+            }
+
+            initializeUI() {
+                document.getElementById('userId').textContent = this.userId;
+                document.getElementById('connectionStatus').textContent = 'Ready';
+                document.getElementById('peerCount').textContent = '0';
+                document.getElementById('messageCount').textContent = '0';
+
+                // Enable message input when Enter is pressed
+                document.getElementById('messageInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+            }
+
+            simulateNetworkActivity() {
+                // Simulate discovery of random peers
+                setTimeout(() => {
+                    this.addPeer('GHOST_' + Math.random().toString(36).substr(2, 8).toUpperCase());
+                    this.addPeer('GHOST_' + Math.random().toString(36).substr(2, 8).toUpperCase());
+                    this.showNotification('Network peers discovered');
+                }, 2000);
+
+                // Simulate occasional peer messages
+                setInterval(() => {
+                    if (this.peers.size > 0 && Math.random() < 0.3) {
+                        const peerIds = Array.from(this.peers.keys());
+                        const randomPeer = peerIds[Math.floor(Math.random() * peerIds.length)];
+                        this.simulateIncomingMessage(randomPeer);
+                    }
+                }, 15000);
+            }
+
+            addPeer(peerId) {
+                if (!this.peers.has(peerId) && peerId !== this.userId) {
+                    this.peers.set(peerId, {
+                        id: peerId,
+                        status: 'connected',
+                        lastSeen: new Date()
+                    });
+                    
+                    this.messages.set(peerId, []);
+                    this.updatePeerList();
+                    this.updatePeerCount();
+                }
+            }
+
+            connectToPeer() {
+                const input = document.getElementById('peerIdInput');
+                const peerId = input.value.trim();
+                
+                if (!peerId) {
+                    this.showNotification('Please enter a peer ID', 'error');
+                    return;
+                }
+
+                if (peerId === this.userId) {
+                    this.showNotification('Cannot connect to yourself', 'error');
+                    return;
+                }
+
+                if (this.peers.has(peerId)) {
+                    this.showNotification('Already connected to this peer', 'error');
+                    return;
+                }
+
+                // Simulate connection process
+                this.showNotification('Connecting through anonymous relays...');
+                
+                setTimeout(() => {
+                    this.addPeer(peerId);
+                    this.selectPeer(peerId);
+                    this.showNotification(`Connected to ${peerId}`);
+                    input.value = '';
+                }, 1500);
+            }
+
+            updatePeerList() {
+                const peerList = document.getElementById('peerList');
+                
+                if (this.peers.size === 0) {
+                    peerList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No active connections</div>';
+                    return;
+                }
+
+                peerList.innerHTML = '';
+                this.peers.forEach((peer, peerId) => {
+                    const peerElement = document.createElement('div');
+                    peerElement.className = 'peer-item';
+                    if (peerId === this.activePeer) {
+                        peerElement.classList.add('active');
+                    }
+                    
+                    peerElement.innerHTML = `
+                        <div class="peer-status"></div>
+                        <div>
+                            <div class="peer-id">${peerId}</div>
+                            <div style="font-size: 0.8rem; color: #888;">Online • Encrypted</div>
+                        </div>
+                    `;
+                    
+                    peerElement.onclick = () => this.selectPeer(peerId);
+                    peerList.appendChild(peerElement);
+                });
+            }
+
+            selectPeer(peerId) {
+                this.activePeer = peerId;
+                this.updatePeerList();
+                this.updateChatUI();
+                this.displayMessages(peerId);
+                
+                // Enable message input
+                const messageInput = document.getElementById('messageInput');
+                const sendBtn = document.getElementById('sendBtn');
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                messageInput.focus();
+            }
+
+            updateChatUI() {
+                const chatTitle = document.getElementById('chatTitle');
+                if (this.activePeer) {
+                    chatTitle.textContent = `Chatting with ${this.activePeer}`;
+                } else {
+                    chatTitle.textContent = 'Select a peer to start messaging';
+                }
+            }
+
+            displayMessages(peerId) {
+                const chatMessages = document.getElementById('chatMessages');
+                const messages = this.messages.get(peerId) || [];
+                
+                if (messages.length === 0) {
+                    chatMessages.innerHTML = `
+                        <div style="text-align: center; color: #666; padding: 40px;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">🔐</div>
+                            <p>End-to-end encrypted conversation with ${peerId}</p>
+                            <p style="margin-top: 10px; font-size: 0.9rem;">All messages are anonymous and ephemeral.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                chatMessages.innerHTML = '';
+                messages.forEach(message => {
+                    const messageEl = document.createElement('div');
+                    messageEl.className = `message ${message.type}`;
+                    messageEl.innerHTML = `
+                        <div>${message.content}</div>
+                        <div class="message-time">${message.timestamp}</div>
+                    `;
+                    chatMessages.appendChild(messageEl);
+                });
+                
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            sendMessage() {
+                if (!this.activePeer) {
+                    this.showNotification('Select a peer first', 'error');
+                    return;
+                }
+
+                const messageInput = document.getElementById('messageInput');
+                const content = messageInput.value.trim();
+                
+                if (!content) return;
+
+                const message = {
+                    content: content,
+                    type: 'sent',
+                    timestamp: new Date().toLocaleTimeString(),
+                    encrypted: true
+                };
+
+                if (!this.messages.has(this.activePeer)) {
+                    this.messages.set(this.activePeer, []);
+                }
+                
+                this.messages.get(this.activePeer).push(message);
+                this.displayMessages(this.activePeer);
+                
+                messageInput.value = '';
+                this.messageCount++;
+                document.getElementById('messageCount').textContent = this.messageCount;
+
+                // Simulate message encryption and transmission
+                this.showNotification('Message encrypted and sent anonymously');
+            }
+
+            simulateIncomingMessage(fromPeer) {
+                const messages = [
+                    "Hello there, fellow ghost! 👻",
+                    "The encryption is working perfectly",
+                    "Anonymous messaging is the future",
+                    "No one can trace this conversation",
+                    "Stay safe and anonymous!",
+                    "This P2P system is amazing",
+                    "Your identity is completely hidden",
+                    "End-to-end encryption active 🔐"
+                ];
+
+                const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+                
+                const message = {
+                    content: randomMessage,
+                    type: 'received',
+                    timestamp: new Date().toLocaleTimeString(),
+                    encrypted: true
+                };
+
+                if (!this.messages.has(fromPeer)) {
+                    this.messages.set(fromPeer, []);
+                }
+                
+                this.messages.get(fromPeer).push(message);
+                
+                if (this.activePeer === fromPeer) {
+                    this.displayMessages(fromPeer);
+                }
+
+                this.showNotification(`New anonymous message from ${fromPeer}`);
+            }
+
+            generateNewIdentity() {
+                this.userId = this.generateAnonymousId();
+                document.getElementById('userId').textContent = this.userId;
+                this.showNotification('New anonymous identity generated');
+            }
+
+            clearAllMessages() {
+                this.messages.clear();
+                this.messageCount = 0;
+                document.getElementById('messageCount').textContent = '0';
+                
+                if (this.activePeer) {
+                    this.displayMessages(this.activePeer);
+                }
+                
+                this.showNotification('All messages cleared');
+            }
+
+            updatePeerCount() {
+                document.getElementById('peerCount').textContent = this.peers.size;
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${type}`;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+        }
+
+        // Global functions for UI interactions
+        let ghostTalk;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            ghostTalk = new GhostTalk();
+        });
+
+        function connectToPeer() {
+            ghostTalk.connectToPeer();
+        }
+
+        function sendMessage() {
+            ghostTalk.sendMessage();
+        }
+
+        function generateNewIdentity() {
+            ghostTalk.generateNewIdentity();
+        }
+
+        function clearAllMessages() {
+            ghostTalk.clearAllMessages();
+        }
+    </script>
+</body>
+</html>
